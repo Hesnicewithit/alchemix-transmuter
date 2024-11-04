@@ -16,6 +16,8 @@ contract StrategyArb is BaseStrategy {
     ERC20 public underlying; 
     address public router;
 
+    uint256 depositLimit;
+
     constructor(
         address _asset,
         address _transmuter,
@@ -44,6 +46,11 @@ contract StrategyArb is BaseStrategy {
         underlying.safeApprove(router, type(uint256).max);
     }
 
+    function  setDepositLimit(uint256 limit) public onlyManagement {
+        depositLimit = limit;
+    }
+
+
     /**
      * @dev Can deploy up to '_amount' of 'asset' in the yield source.
      *
@@ -58,6 +65,10 @@ contract StrategyArb is BaseStrategy {
      * Note we could also swap WEETH to alETH here if available to claim but making this call permissioned due to sandwiching risk
      */
     function _deployFunds(uint256 _amount) internal override {
+        uint256 totalAssets = TokenizedStrategy.totalAssets();
+        uint256 allowance = depositLimit - totalAssets;
+        require(_amount > 0, "Amount must exceed 0");
+        require(_amount < allowance, "Deposit cap exceeded");
         transmuter.deposit(_amount, address(this));
     }
 
@@ -240,17 +251,14 @@ contract StrategyArb is BaseStrategy {
      *
      * @param . The address that is depositing into the strategy.
      * @return . The available amount the `_owner` can deposit in terms of `asset`
-     *
-    function availableDepositLimit(
-        address _owner
-    ) public view override returns (uint256) {
-        TODO: If desired Implement deposit limit logic and any needed state variables .
-        
-        EX:    
-            uint256 totalAssets = TokenizedStrategy.totalAssets();
-            return totalAssets >= depositLimit ? 0 : depositLimit - totalAssets;
-    }
-    */
+     */
+
+    // function availableDepositLimit(
+    //     address _owner
+    // ) public view override returns (uint256) {
+    //         uint256 totalAssets = TokenizedStrategy.totalAssets();
+    //         return totalAssets >= depositLimit ? 0 : depositLimit - totalAssets;
+    // }
 
     /**
      * @dev Optional function for strategist to override that can

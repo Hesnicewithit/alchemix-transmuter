@@ -24,6 +24,8 @@ contract StrategyMainnet is BaseStrategy {
     mapping(uint256 => uint256[5][5]) public swapParams;
     mapping(uint256 => address[5]) public pools;
 
+    uint256 depositLimit;
+
     constructor(
         address _asset,
         address _transmuter,
@@ -64,6 +66,10 @@ contract StrategyMainnet is BaseStrategy {
         nRoutes++;
     }
 
+    function  setDepositLimit(uint256 limit) public onlyManagement {
+        depositLimit = limit;
+    }
+
     /**
      * @dev Can deploy up to '_amount' of 'asset' in the yield source.
      *
@@ -78,6 +84,10 @@ contract StrategyMainnet is BaseStrategy {
      * Note we could also swap WETH to alETH here if available to claim but making this call permissioned due to sandwiching risk
      */
     function _deployFunds(uint256 _amount) internal override {
+        uint256 totalAssets = TokenizedStrategy.totalAssets();
+        uint256 allowance = depositLimit - totalAssets;
+        require(_amount > 0, "Amount must exceed 0");
+        require(_amount < allowance, "Deposit cap exceeded");
         transmuter.deposit(_amount, address(this));
     }
 
